@@ -58,12 +58,98 @@ This SOC home lab aims to simulate a real-world security monitoring and incident
 ## Steps
 1️⃣ SIEM - Graylog Setup
 
-Installed Graylog on VMware to avoid MongoDB-VirtualBox conflicts.
+* Installed Graylog on VMware to avoid MongoDB-VirtualBox conflicts.
 
-Configured Sidecar and Rsyslog to forward logs from target machines.
+* Configured Sidecar and Rsyslog to forward logs from target machines.
 
-Created inputs to receive logs from OSSEC, Suricata, and PfSense.
+* Created inputs to receive logs from OSSEC, Suricata, and PfSense.
 
-Configured alerts and dashboards for log visualization and monitoring.
+* Configured alerts and dashboards for log visualization and monitoring.
+
+2️⃣ EDR - OSSEC Installation & Integration
+
+* Installed OSSEC on VirtualBox and connected it to Security Management VLAN.
+
+* Installed OSSEC agents on target machines (Ubuntu & Windows) and configured them to send logs to the OSSEC server.
+
+* Forwarded OSSEC logs to Graylog for centralized monitoring.
+
+3️⃣ IDS - Suricata Deployment & Configuration
+
+* Installed Suricata on VirtualBox and attached it to the Target VLAN.
+
+* Configured Suricata to monitor network traffic on the correct interface.
+
+* Enabled rule sets for detecting malicious activities.
+
+* Forwarded Suricata alerts to Graylog for analysis.
+
+4️⃣ Firewall - PfSense Network Segmentation
+
+* Installed PfSense on VirtualBox.
+
+* Configured network segmentation using VLANs:
+
+  * Adapter 1 (Bridged Mode): Connected to Graylog for routing ease.
+
+  * Adapter 2 (Security Management VLAN): Connected to OSSEC and Analyst machine.
+
+  * Adapter 3 (Target VLAN): Connected to Ubuntu & Windows target machines.
+
+  * Adapter 4 (Attack VLAN): Connected to Kali Linux for attack simulations.
+
+* Implemented firewall rules to allow/deny traffic between VLANs.
+
+5️⃣ Target Machines & Log Forwarding
+
+* Installed Ubuntu Desktop & Windows 10 on VirtualBox, attaching them to the Target VLAN.
+
+* Configured Sidecar on Windows and Ubuntu to send logs to Graylog.
+
+* Configured rsyslog for additional log forwarding.
+
+6️⃣ Analyst Machine Setup
+
+* Installed Ubuntu Desktop on VirtualBox and attached it to Security Management VLAN.
+
+* Ensured access to Graylog and OSSEC with strict security controls.
+
+* Prepared the machine for security analysis and incident response.
+
+7️⃣ Attack Machine - Kali Linux for Cyber Attacks
+
+* Installed Kali Linux on VirtualBox and connected it to the Attack VLAN.
+
+* Conducted various attacks, including:
+
+* Port scanning (Nmap)
+
+* Vulnerability scanning (OpenVAS, John)
+
+* Brute-force attacks (Hydra, Medusa)
+
+* Observed attack logs in Graylog and OSSEC.
+
+8️⃣ Incident Response - TheHive (Planned Setup)
+
+* Plan to install TheHive for incident tracking and management.
+
+* Integrate with Graylog to create alerts and track security events.
+
+## Conclusion
+
+This SOC home lab provides a hands-on approach to security monitoring, log analysis, and incident response. With the current setup, I have gained practical knowledge of setting up and managing a SOC environment, configuring SIEM, EDR, and IDS tools, and performing cybersecurity attack simulations.
+
+Future enhancements will include:
+
+* **Full deployment of TheHive for incident response tracking**
+
+* **Refining alerting and detection rules for improved threat intelligence**
+
+* **Exploring additional threat-hunting techniques using SIEM dashboards**
+
+* **Automating response mechanisms for detected threats**
+
+This portfolio is a documentation of my cybersecurity journey and a reference for others looking to build their own SOC home lab.
 
 *Ref 1: Network Diagram*
