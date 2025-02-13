@@ -1,7 +1,10 @@
 # SOC DETECTION HOME LAB
 
+## Network Setup ##
+![Mini-SOC Lab (4)](https://github.com/user-attachments/assets/a23d7033-5dad-46e2-84d0-c0e2b495ee44) *Ref 1: Network Diagram*
+
+
 ## Objective
-[Brief Objective - Remove this afterwards]
 
 This SOC home lab aims to simulate a real-world security monitoring and incident response environment. This setup allows for:
 
@@ -18,7 +21,6 @@ This SOC home lab aims to simulate a real-world security monitoring and incident
 * Incident response practice with a ticketing system.
 
 ### Skills Learned
-[Bullet Points - Remove this afterwards]
 
 * SIEM Administration (Graylog: log collection, analysis, alerting, and visualization)
 
@@ -40,6 +42,7 @@ This SOC home lab aims to simulate a real-world security monitoring and incident
 ### Tools Used
 
 * Virtualization: VMware & VirtualBox (Used to deploy all components in a virtual lab setup)
+![Screenshot (64)](https://github.com/user-attachments/assets/6fef7b4a-fce8-4730-bc65-64ecccf79ea1) *Ref 2: Virtualization setup*
 
 * SIEM: Graylog (Installed on VMware)
 
@@ -65,6 +68,8 @@ This SOC home lab aims to simulate a real-world security monitoring and incident
 * Created inputs to receive logs from OSSEC, Suricata, and PfSense.
 
 * Configured alerts and dashboards for log visualization and monitoring.
+![Screenshot (65)](https://github.com/user-attachments/assets/eb603765-d353-4ce2-8ec0-1ab34c6bea42) *Ref 3: Graylog Interface*
+
 
 2️⃣ EDR - OSSEC Installation & Integration
 
@@ -151,5 +156,3 @@ Future enhancements will include:
 * **Automating response mechanisms for detected threats**
 
 This portfolio is a documentation of my cybersecurity journey and a reference for others looking to build their own SOC home lab.
-
-*Ref 1: Network Diagram*
