@@ -141,6 +141,11 @@ This SOC home lab aims to simulate a real-world security monitoring and incident
 
 * Integrate with Graylog to create alerts and track security events.
 
+## 📌 Full Setup Guide
+🔹 Want to **replicate this SOC lab**? Follow my step-by-step installation & configuration guide:
+
+👉 [SOC Home Lab Step-By-Step Tutorial](https://github.com/Magoban/Detection-Lab/blob/main/SOC-Setup-Guide.md)
+
 ## Conclusion
 
 This SOC home lab provides a hands-on approach to security monitoring, log analysis, and incident response. With the current setup, I have gained practical knowledge of setting up and managing a SOC environment, configuring SIEM, EDR, and IDS tools, and performing cybersecurity attack simulations.
@@ -156,3 +161,4 @@ Future enhancements will include:
 * **Automating response mechanisms for detected threats**
 
 This portfolio is a documentation of my cybersecurity journey and a reference for others looking to build their own SOC home lab.
+
