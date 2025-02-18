@@ -142,7 +142,189 @@ A URL will be provided as part of the output, click on it and begin the data nod
 3. Click to create policy and on the next page click to begin provisioning.
 4. Once the provisioning is done, click to resume startup.
 Now, your Graylog and data node should be running successfully. Log in with the username "admin" and the admin password you created during the installation steps.
+## 2️⃣ Configuring Windows and Ubuntu Target to Send Logs to Graylog using Graylog Sidecar
+### Step 1: Install and Configure Graylog Sidecar on Windows
+Graylog Sidecar is a lightweight agent that helps manage log collectors like **Winlogbeat or NxLog** to send logs to Graylog.
+### Download & Install Sidecar
+1. Download Graylog Sidecar from [Graylog Sidecar GitHub Release](https://github.com/Graylog2/collector-sidecar/releases)
+2. Run the installer and install the program.
+3. After installation, open PowerShell (Admin) and navigate to the install directory:
+```powershell
+cd "C:\Program Files\Graylog\Sidecar"
+```
+4. Install Sidecar as a service:
+```powershell
+.\graylog-sidecar.exe -service install
+```
+5. Start the Sidecar service:
+```powershell
+.\graylog-sidecar.exe -service start
+```
+### Configure Sidecar to Connect to Graylog
+1. Open the Sidecar configuration file (ensure you are still in the Sidecar directory):
+```powershell
+notepad sidecar.yml
+```
+2. Modify these lines:
+```yaml
+server_url: "http://<GRAYLOG_IP>:9000/api/"
+server_api_token: "<YOUR_GRAYLOG_API_TOKEN>"
+node_id: "windows-client"
+```
+* Replace <Graylog_IP> with the IP address of your Graylog server.
+* Replace <YOUR_GRAYLOG_API_TOKEN> with an API token from Graylog. Follow the steps below to get an API token from Graylog:
+ * In the Graylog web UI, select **system**
+ * Select **Sidecars**
+ * CLick **Create Token**
+3. Save the file and exit.
+4. Restart the Sidecar service:
+```powershell
+Restart-Service graylog-sidecar
+```
+### Configure Sidecar in Graylog Web UI
+1. Log into Graylog Web UI (http://<GRAYLOG_IP>:9000).
+2. Go to: **System > Sidecars**.
+3. You should see your Windows machine listed. ✅
+4. Click "**Configuration**" next to the Windows client.
+5. Select "**Winlogbeat**" as the Collector Backend.
+6. Click "**Assign**".
+### Configure Winlogbeat in Sidecar
+1. Go to System > Sidecars > Configuration.
+2. Click Create New Configuration.
+3. Set the following settings:
+ * Name: *Windows Logs*
+ * Collector Backend: *Winlogbeat*
+ * **Configuration**: Edit the **output.logstash:
+   hosts: ["${user.graylog_host}:5044"]** to **output.logstash:
+   hosts: ["<GRAYLOG_IP>:5044"]**
+You can also remove logs that you don't want to be collected to reduce the number of logs to be monitored and collected.
+4. Click **save**
+### Step 4: Start Sending Logs
+1. Go back to **System > Sidecars**.
+2. Click "**Restart**" next to your Windows client.
+3. After a few minutes, logs should appear in **Graylog > Search**
+### Verify Logs in Graylog
+* Go to **Graylog Web UI > Search**.
+* Use this query:
+```bash
+source:windows-client-name
+```
+You should start seeing logs from your **Windows Target Machine**
+### Step 2: Install and Configure Graylog Sidecar on Ubuntu
+### Download & Install Sidecar
+1. Download Graylog Sidecar from [Graylog Sidecar GitHub Release](https://github.com/Graylog2/collector-sidecar/releases)
+2. Install Sidecar using dpkg
+```bash
+cd ~/Downloads
+sudo dpkg -i graylog-sidecar_1.5.0-1_amd64.deb #or whichever version you downloaded or whatever the file name is.
+```
+3.  Fix missing dependencies (if needed):
+```bash
+sudo apt update && sudo apt install -f
+```
+4. Edit the Sidecar configuration file:
+```bash
+sudo nano /etc/graylog/sidecar/sidecar.yml
+```
+Find and update these lines:
+```yaml
+server_url: "http://<GRAYLOG_IP>:9000/api/"
+server_api_token: "<YOUR_GRAYLOG_API_TOKEN>"
+node_id: "ubuntu-client"
+```
+* Input your Graylog server IP address.
+* Follow the same steps as Windows to get a Graylog API Token for the Ubuntu.
+* Save and exit (CTRL+X, then Y, then ENTER).
+### Start the Sidecar Service
+```bash
+sudo systemctl enable graylog-sidecar
+sudo systemctl start graylog-sidecar
+sudo systemctl status graylo-sidecar
+```
+Now, you might run into an error like this :
+**Failed to enable unit: Unit file graylog-sidecar.service does not exist.
+Failed to start graylog-sidecar.service: Unit graylog-sidecar.service not found.**
+This error can be because Graylog Sidecar service is missing or not installed correctly.
+To fix this error, do the following:
+#### Verify Installation: Make sure your installation is successful
+```bash
+dpkg -l | grep graylog-sidecar
+```
+* If it shows an output, the sidecar is installed successfully
+* If there's no output, the sidecar isn't installed properly and you will need to install it again.
+#### Check If the Service Exists
+```bash
+ls -l /etc/systemd/system/graylog-sidecar.service
+```
+* If the service exist, try reloading systemd
+```bash
+sudo systemctl daemon-reload
+```
+Then, start the sidecar again
+* If the file does NOT exist, it means the Sidecar service file is missing. Follow these steps to manually create the service
+Create the service:
+```bash
+sudo nano /etc/systemd/system/graylog-sidecar.service
+```
+Paste the following inside the file:
+```ini
+[Unit]
+Description=Graylog Sidecar
+After=network.target
 
+[Service]
+ExecStart=/usr/bin/graylog-sidecar
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+```
+Save and exit (CTRL+X, then Y, then ENTER).
+Reload systemd and enable Sidecar:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now graylog-sidecar
+sudo systemctl status graylog-sidecar
+```
+It should now be running and active
+### Configure Graylog to Receive Logs from Ubuntu
+#### Register Ubuntu in Graylog
+1. Go to Graylog Web UI (http://<GRAYLOG_IP>:9000).
+2. Navigate to **System > Sidecars**.
+3. You should see "**ubuntu-client**" in the list. ✅
+4. Click "**Configuration**" next to the Ubuntu client.
+5. Select **Filebeat** as the Collector Backend.
+6. Click "**Assign**".
+### Configure Filebeat in Sidecar
+#### Create a Filebeat Configuration in Graylog
+1. Go to **System > Sidecars > Configuration**.
+2. Click **Create New Configuration**.
+3. Set:
+ * Name: Ubuntu Logs
+ * Collector Backend: Filebeat
+4. Edit configuration
+Find the filebeat.inputs section and add the following inside it:
+```yaml
+ - type: log
+    enabled: true
+    paths:
+      - /var/log/syslog
+      - /var/log/auth.log
+      - /var/log/kern.log
+```
+5. Save the changes and restart the Sidecar service on the Ubuntu Target Machine:
+```bash
+sudo systemctl restart graylog-sidecar
+```
+### Verify Logs in Graylog
+1. Go to Graylog Web UI > Search.
+2. Use this query:
+```ini
+source:ubuntu-client-name
+```
+Logs should be appearing and you have successfully integrated your target machines to send logs to Graylog
 ## 2️⃣ Setting Up OSSEC (EDR) on VirtualBox
 Download and install Ubuntu-22.04.5-server on VirtualBox
 [Ubuntu 22.04.5 server version](https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso)
@@ -156,6 +338,14 @@ sudo apt-get update && sudo apt-get upgrade -y
 ### Install Required Dependencies
 ```sh
 sudo apt install -y curl unzip make gcc policycoreutils python3 python3-pip inotify-tools
+```
+### Additional Dependencies
+```sh
+sudo apt update && sudo apt install -y \
+    curl unzip make gcc policycoreutils python3 python3-pip \
+    inotify-tools libpcre2-dev libssl-dev libevent-dev \
+    build-essential zlib1g-dev libz-dev libsystemd-dev \
+    libcap-ng-dev
 ```
 ### Download OSSEC Source Code
 ```sh
@@ -181,6 +371,18 @@ sudo /var/ossec/bin/ossec-control start
 ```sh
 sudo /var/ossec/bin/ossec-control status
 ```
+**Note:** A problem I ran into was the OSSEC remote-d not running. OSSEC remote-d allows OSSEC agents to communicate with OSSEC server. Here are some fixes for the problem:
+### Manually start the remote-d
+```sh
+sudo /var/ossec/bin/ossec-remoted -d
+```
+Then check the status of the OSSEC server again
+### Stop and start the OSSEC server again
+```sh
+sudo /var/ossec/bin/ossec-control stop
+sudo /var/ossec/bin/ossec-control start
+```
+If none of these fixes work for you, go ahead to install and register the agents. Sometimes, OSSEC remote-d fails because there are no agents registered on its list of allowed IPs.
 # Step 2: Install OSSEC Agents on Target Machines
 ### 🔹 Install OSSEC Agent on Ubuntu Target Machine
 If your Ubuntu Desktop (target machine) is a fresh installation, update the system packages and install the required dependencies before beginning the installation of the OSSEC Agent.
@@ -209,7 +411,7 @@ Download the OSSEC agent from:
 * Open Windows Services (services.msc).
 * Find OSSEC HIDS Agent.
 * Right-click → Start.
-# 🛠️ Step 3: Register and Connect Agents to OSSEC Server
+# Step 3: Register and Connect Agents to OSSEC Server
 📌 These steps should be done on the OSSEC Server machine.
 
 ### Add the Ubuntu Agent to the OSSEC Server
@@ -234,13 +436,13 @@ sudo /var/ossec/bin/agent-auth -m <OSSEC_SERVER_IP> -p 1515
 * Open OSSEC Agent Manager.
 * Go to Manage Keys → Import Key (Copy-Paste from OSSEC Server).
 * Save and restart the OSSEC agent.
-# 🛠️ Step 4: Configure OSSEC to Send Logs to Graylog
+# Step 4: Configure OSSEC to Send Logs to Graylog
 On the OSSEC sever,
 ### Edit OSSEC Configuration File
 ```sh
 sudo nano /var/ossec/etc/ossec.conf
 ```
-Add this section inside <global>:
+Add this section inside *<global>* :
 ```sh
 <remote>
     <connection>syslog</connection>
@@ -256,6 +458,30 @@ Save and exit (CTRL+X, then Y, then ENTER).
 ```sh
 sudo /var/ossec/bin/ossec-control restart
 ```
-
+# Step 5: Configure Graylog to Receive OSSEC Logs
+Log into the Graylog Web UI for this step
+### Create a New Syslog UDP Input in Graylog
+1. Log into Graylog Web GUI
+2. Go to: System → Inputs
+3. Click "Launch new Input"
+4. Select "Syslog UDP"
+5. Configure:
+ * Bind Address: 0.0.0.0
+ * Port: 514
+ * Allow overriding date: ✅ Yes
+6. Click Save.
+# Step 6: Verify Logs Are Reaching Graylog
+### Monitor Logs on OSSEC Server
+```sh
+sudo tail -f /var/ossec/logs/ossec.log
+```
+You should see log-forwarding messages
+### Check Logs in Graylog
+Go to Graylog Web GUI → Search
+Use this query:
+```bash
+source:OSSEC_SERVER_IP
+```
+If logs appear, OSSEC is successfully integrated with Graylog!🎉
 
 
