@@ -143,7 +143,119 @@ A URL will be provided as part of the output, click on it and begin the data nod
 4. Once the provisioning is done, click to resume startup.
 Now, your Graylog and data node should be running successfully. Log in with the username "admin" and the admin password you created during the installation steps.
 
+## 2️⃣ Setting Up OSSEC (EDR) on VirtualBox
+Download and install Ubuntu-22.04.5-server on VirtualBox
+[Ubuntu 22.04.5 server version](https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso)
+# Step 1: Download and install OSSEC server
+## 📌  Installation Steps:
+For ease of use, ssh into the machine on a desktop Operating System (Windows or Linux). This will allow you to copy and paste commands easily.
+ ### Update the Ubuntu system
+```sh
+sudo apt-get update && sudo apt-get upgrade -y
+```
+### Install Required Dependencies
+```sh
+sudo apt install -y curl unzip make gcc policycoreutils python3 python3-pip inotify-tools
+```
+### Download OSSEC Source Code
+```sh
+curl -O https://github.com/ossec/ossec-hids/archive/refs/tags/3.7.0.tar.gz
+```
+### Extract the Downloaded File
+```sh
+tar -xvzf 3.7.0.tar.gz
+cd ossec-hids-3.7.0
+```
+### Start the OSSEC Installer
+```sh
+Start the OSSEC Installer
+```
+* When prompted, select: server mode.
+* Enter the IP of your Ubuntu server machine as the OSSEC server IP.
+* Accept default options unless you have a specific reason to change them.
+### Start the OSSEC Service
+```sh
+sudo /var/ossec/bin/ossec-control start
+```
+### Check the Status of the OSSEC Service
+```sh
+sudo /var/ossec/bin/ossec-control status
+```
+# Step 2: Install OSSEC Agents on Target Machines
+### 🔹 Install OSSEC Agent on Ubuntu Target Machine
+If your Ubuntu Desktop (target machine) is a fresh installation, update the system packages and install the required dependencies before beginning the installation of the OSSEC Agent.
+### Download & Install OSSEC Agent
+```sh
+curl -O https://github.com/ossec/ossec-hids-agent/archive/refs/tags/3.7.0.tar.gz
+tar -xvzf 3.7.0.tar.gz
+cd ossec-hids-agent-3.7.0
+sudo ./install.sh
+```
+* Choose "agent" mode when prompted.
+* Enter the OSSEC Server IP when prompted.
+* Accept default options unless you have a specific reason to change them.
+### Start and Verify the Status of the OSSEC Agent
+```sh
+sudo /var/ossec/bin/ossec-control start
+sudo /var/ossec/bin/ossec-control status
+```
+### 🔹 Install OSSEC Agent on Windows Target Machine
+Download the OSSEC agent from:
+🔗 [OSSEC Official Download Page](https://www.ossec.net/download-ossec/)
+* Run the installer and choose "Agent" mode.
+* Enter the OSSEC Server's IP address when prompted.
+* Complete the installation.
+* Start the OSSEC Agent
+* Open Windows Services (services.msc).
+* Find OSSEC HIDS Agent.
+* Right-click → Start.
+# 🛠️ Step 3: Register and Connect Agents to OSSEC Server
+📌 These steps should be done on the OSSEC Server machine.
 
+### Add the Ubuntu Agent to the OSSEC Server
+```sh
+sudo /var/ossec/bin/manage_agents
+```
+* Choose: A (Add Agent)
+* Enter:
+  Agent Name → ubuntu-target
+  Agent IP → Ubuntu Target IP
+  Confirm
+Get the Agent Key from the output.
+### Add the Windows Agent to the OSSEC Server
+Repeat the above steps for Windows, using its IP and hostname.
+### Import Agent Key on Ubuntu Target
+On the Ubuntu Target Machine, Run:
+```sh
+sudo /var/ossec/bin/agent-auth -m <OSSEC_SERVER_IP> -p 1515
+```
+**Note:** replace <OSSEC_SERVER_IP) with the IP address of the Ubuntu machine the OSSEC server is installed on.
+### Import Agent Key on Windows Target
+* Open OSSEC Agent Manager.
+* Go to Manage Keys → Import Key (Copy-Paste from OSSEC Server).
+* Save and restart the OSSEC agent.
+# 🛠️ Step 4: Configure OSSEC to Send Logs to Graylog
+On the OSSEC sever,
+### Edit OSSEC Configuration File
+```sh
+sudo nano /var/ossec/etc/ossec.conf
+```
+Add this section inside <global>:
+```sh
+<remote>
+    <connection>syslog</connection>
+    <port>514</port>
+    <protocol>udp</protocol>
+    <allowed-ips>GRAYLOG_IP</allowed-ips>
+</remote>
+```
+Replace GRAYLOG_IP with the actual IP of your Graylog server.
+
+Save and exit (CTRL+X, then Y, then ENTER).
+### Restart the OSSEC Server to Apply Changes
+```sh
+sudo /var/ossec/bin/ossec-control restart
+```
 
 
 
