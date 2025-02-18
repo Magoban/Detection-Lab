@@ -293,7 +293,7 @@ It should now be running and active
 #### Register Ubuntu in Graylog
 1. Go to Graylog Web UI (http://<GRAYLOG_IP>:9000).
 2. Navigate to **System > Sidecars**.
-3. You should see "**ubuntu-client**" in the list. ✅
+3. You should see "**ubuntu-client**" in the list.
 4. Click "**Configuration**" next to the Ubuntu client.
 5. Select **Filebeat** as the Collector Backend.
 6. Click "**Assign**".
@@ -483,5 +483,105 @@ Use this query:
 source:OSSEC_SERVER_IP
 ```
 If logs appear, OSSEC is successfully integrated with Graylog!🎉
+## 2️⃣ Setting Up Suricata (IDS) on VirtualBox
+install a clean Ubuntu-22.04.5-server on VirtualBox
+# Step 1: Download and install OSSEC server
+## 📌  Installation Steps:
+For ease of use, ssh into the machine on a desktop Operating System (Windows or Linux). This will allow you to copy and paste commands easily.
+ ### Update the Ubuntu system
+```sh
+sudo apt-get update && sudo apt-get upgrade -y
+```
+### Install Prerequisites for Suricata
+```bash
+sudo apt -y install libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 jq
+```
+### Add Suricata Repository
+```bash
+sudo add-apt-repository ppa:oisf/suricata-stable
+```
+### Install Suricata
+```bash
+sudo apt install suricata
+```
+### Edit Suricata Configuration File
+```bash
+sudo nano /etc/suricata/suricata.yaml
+```
+* In the **HOME_NET** section, edit and insert the IP network you want Suricata to monitor. Separate the different IPS with ,
+* Scroll or search to go to the **interface** section in the **af-packet** you will need to set the Network interface Suricata should be listening on. By default, it will be set to **eth0** replace this with the correct Network interface your Suricata is on. It helps to have Suricata and the target machines on the same network interface as I did in my setup.
+* Find the **outputs:** section and ensure syslog is enabled:
+```yaml
+outputs:
+  - syslog:
+      enabled: yes
+      facility: local5
+```
+If there is no **syslog** entry in the **outputs** section, go ahead and add it.
+* Save & Exit (CTRL+X, then Y, then ENTER).
+### Set and Enable Suricata Rules
+#### To check the rules available
+```bash
+sudo suricata-update list-sources
+```
+There are different rules you can install and integrate for your Ssuricata to use in monitoring like the EmergingThreat (ET)
+#### To install ET rule
+```bash
+sudo suricata-update enable-source et/open
+```
+To install other rules, replace **et/open** with the name of the rule you wish to install. Some rules are Licensed, so you might not be able to add them without payment.
+#### Update Suricata instance to include the rule that was added
+```bash
+sudo suricata-update
+```
+#### Looking for where the rules are stored?
+```bash
+sudo su
+cd /var/lib/suricata/rules
+cat suricata.rules | less
+```
+root privilege is required to access the *rules* directory
+### Configure rsyslog to Send Suricata Logs to Graylog
+#### Edit rsyslog config file:
+```ngnix
+local5.* @GRAYLOG_IP:514
+if $programname == 'suricata' then @GRAYLOG_IP:514
+& stop
+```
+Copy and paste into the file (Don't worry if the file is empty, just copy and paste the above commands)
+* Save & Exit (CTRL+X, then Y, then ENTER).
+### Enable & Start Services
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable suricata.service
+sudo systemctl start suricata.service
+sudo systemctl enable rsyslog
+sudo systemctl start rsyslog
+sudo systemctl status suricata.service
+sudo systemctl status rsyslog
+```
+Both services should be running and active.
+### Verify Suricata Logs in Graylog
+1. Go to **Graylog Web UI > Search**.
+2. Run this query:
+```ini
+source:suricata
+```
+Logs from Suricata should now be coming into your Graylog
 
+**NOTE**: If you are making use of pfSense in your home lab (like I did in mine), then you need to install and configure the Suricata package on pfSense web UI to send system logs (including firewall logs) to your Graylog. The process for that is not covered in this walk-through. However, if you do need it, feel free to reach out to me and I will provide a brief walk-through for that also. 
+
+# 🔍 Conclusion & Next Steps
+This SOC home lab simulates a real-world security environment.
+✔️ Centralized logging with Graylog
+✔️ Endpoint monitoring with OSSEC
+✔️ Network intrusion detection with Suricata
+✔️ Firewall segmentation with pfSense
+
+🔹 **Next Steps**:
+✅ Deploy **TheHive** for Incident Response
+✅ Automate alerting in Graylog
+✅ Enhance attack simulation with advanced exploits
+
+📌 **Want to build your own lightweight SOC home lab**? Follow this guide & share your experience! 🚀
 
