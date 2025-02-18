@@ -18,7 +18,7 @@
 | Firewall	 | pfSense	    | Network segmentation & security policies  |
 | Target VMs |	Windows 10 & Ubuntu	| Simulating real-world workstations |
 | Attack VM	 | Kali Linux	  | Simulating cyberattacks                    |
-| Analyst VM | Ubuntu |     | Simulating real-word analyst workstation    |
+| Analyst VM | Ubuntu |     | Real-word analyst workstation              |
 | Incident Response | TheHive (Planned)	| Tracking & responding to security incidents |
 
 ## 📍 Lab Architecture & Network Segmentation on pfSense
@@ -30,7 +30,7 @@ Adapter 3    | Target VLAN              | Connected to Suricata, Windows & Ubunt
 Adapter 4    | Attack VLAN              | Connected to Kali Linux  
 
 ## 📌 Step-by-Step Installation & Configuration
-1️⃣ **Installing Graylog (SIEM) on VMware**
+## 1️⃣ Installing Graylog (SIEM) on VMware
 
 🔹 Why VMware?
 
@@ -100,7 +100,7 @@ sudo sed -i "/^password_secret =/s/$/ $(< /dev/urandom tr -dc A-Z-a-z-0-9 | head
 grep password_secret /etc/graylog/datanode/datanode.conf
 ```
 If you opened a new terminal Window for the previous step, return to the terminal window you've been using since the beginning. 
-### Now let's enable and start the Graylog DataNode Service
+### Now, let's enable and start the Graylog DataNode Service
 ```sh
 sudo systemctl enable graylog-datanode.service
 sudo systemctl start graylog-datanode
@@ -197,9 +197,9 @@ Restart-Service graylog-sidecar
  * **Configuration**: Edit the **output.logstash:
    hosts: ["${user.graylog_host}:5044"]** to **output.logstash:
    hosts: ["<GRAYLOG_IP>:5044"]**
-You can also remove logs that you don't want to be collected to reduce the number of logs to be monitored and collected.
+You can also remove logs that you don't want collected to reduce the number of logs to be monitored and collected.
 4. Click **save**
-### Step 4: Start Sending Logs
+### Start Sending Logs
 1. Go back to **System > Sidecars**.
 2. Click "**Restart**" next to your Windows client.
 3. After a few minutes, logs should appear in **Graylog > Search**
@@ -256,12 +256,13 @@ dpkg -l | grep graylog-sidecar
 ```bash
 ls -l /etc/systemd/system/graylog-sidecar.service
 ```
-* If the service exist, try reloading systemd
+* If the service exists, try reloading systemd
 ```bash
 sudo systemctl daemon-reload
 ```
 Then, start the sidecar again
-* If the file does NOT exist, it means the Sidecar service file is missing. Follow these steps to manually create the service
+* If the file does NOT exist, it means the Sidecar service file is missing. Follow these steps to manually create the service.
+
 Create the service:
 ```bash
 sudo nano /etc/systemd/system/graylog-sidecar.service
@@ -282,6 +283,7 @@ Group=root
 WantedBy=multi-user.target
 ```
 Save and exit (CTRL+X, then Y, then ENTER).
+
 Reload systemd and enable Sidecar:
 ```bash
 sudo systemctl daemon-reload
@@ -304,8 +306,9 @@ It should now be running and active
 3. Set:
  * Name: Ubuntu Logs
  * Collector Backend: Filebeat
-4. Edit configuration
-Find the filebeat.inputs section and add the following inside it:
+4. Edit configuration.
+
+Find the **filebeat.inputs** section and add the following inside it:
 ```yaml
  - type: log
     enabled: true
@@ -325,7 +328,7 @@ sudo systemctl restart graylog-sidecar
 source:ubuntu-client-name
 ```
 Logs should be appearing and you have successfully integrated your target machines to send logs to Graylog
-## 2️⃣ Setting Up OSSEC (EDR) on VirtualBox
+## 3️⃣ Setting Up OSSEC (EDR) on VirtualBox
 Download and install Ubuntu-22.04.5-server on VirtualBox
 [Ubuntu 22.04.5 server version](https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso)
 # Step 1: Download and install OSSEC server
@@ -429,9 +432,24 @@ Repeat the above steps for Windows, using its IP and hostname.
 ### Import Agent Key on Ubuntu Target
 On the Ubuntu Target Machine, Run:
 ```sh
-sudo /var/ossec/bin/agent-auth -m <OSSEC_SERVER_IP> -p 1515
+sudo /var/ossec/bin/manage_agents
 ```
-**Note:** replace <OSSEC_SERVER_IP) with the IP address of the Ubuntu machine the OSSEC server is installed on.
+Then follow these steps:
+
+1. Select **I** (Import key for an agent).
+2. Paste the full agent key (copied from the OSSEC server).
+3. Press ENTER to save it.
+4. Restart the OSSEC agent:
+```bash
+sudo /var/ossec/bin/ossec-control restart
+```
+### Confirm Agent is Listed on the Server
+On the OSSEC server, check the agent status:
+```bash
+sudo /var/ossec/bin/list_agents -c
+```
+If the agent appears as active, everything is working.
+If not, you might want to check firewall settings
 ### Import Agent Key on Windows Target
 * Open OSSEC Agent Manager.
 * Go to Manage Keys → Import Key (Copy-Paste from OSSEC Server).
@@ -442,14 +460,21 @@ On the OSSEC sever,
 ```sh
 sudo nano /var/ossec/etc/ossec.conf
 ```
-Add this section inside *<global>* :
+Add this section inside <**global**> :
 ```sh
-<remote>
+<ossec_config>
+  <remote>
     <connection>syslog</connection>
-    <port>514</port>
-    <protocol>udp</protocol>
-    <allowed-ips>GRAYLOG_IP</allowed-ips>
-</remote>
+    <port>1515</port>
+    <allowed-ips>GRAYLOG_SERVER_IP</allowed-ips>
+  </remote>
+
+  <syslog_output>
+    <server>GRAYLOG_SERVER_IP</server>
+    <port>1515</port>
+    <format>json</format>
+  </syslog_output>
+</ossec_config>
 ```
 Replace GRAYLOG_IP with the actual IP of your Graylog server.
 
@@ -467,7 +492,7 @@ Log into the Graylog Web UI for this step
 4. Select "Syslog UDP"
 5. Configure:
  * Bind Address: 0.0.0.0
- * Port: 514
+ * Port: 1515
  * Allow overriding date: ✅ Yes
 6. Click Save.
 # Step 6: Verify Logs Are Reaching Graylog
@@ -483,9 +508,10 @@ Use this query:
 source:OSSEC_SERVER_IP
 ```
 If logs appear, OSSEC is successfully integrated with Graylog!🎉
-## 2️⃣ Setting Up Suricata (IDS) on VirtualBox
+If logs are not appearing on Graylog, set the firewall rule to allow communication from 1515/udp.
+## 4️⃣ Setting Up Suricata (IDS) on VirtualBox
 install a clean Ubuntu-22.04.5-server on VirtualBox
-# Step 1: Download and install OSSEC server
+# Step 1: Download and install Suricata
 ## 📌  Installation Steps:
 For ease of use, ssh into the machine on a desktop Operating System (Windows or Linux). This will allow you to copy and paste commands easily.
  ### Update the Ubuntu system
@@ -573,14 +599,21 @@ Logs from Suricata should now be coming into your Graylog
 
 # 🔍 Conclusion & Next Steps
 This SOC home lab simulates a real-world security environment.
+
 ✔️ Centralized logging with Graylog
+
 ✔️ Endpoint monitoring with OSSEC
+
 ✔️ Network intrusion detection with Suricata
+
 ✔️ Firewall segmentation with pfSense
 
 🔹 **Next Steps**:
+
 ✅ Deploy **TheHive** for Incident Response
+
 ✅ Automate alerting in Graylog
+
 ✅ Enhance attack simulation with advanced exploits
 
 📌 **Want to build your own lightweight SOC home lab**? Follow this guide & share your experience! 🚀
